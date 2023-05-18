@@ -71,7 +71,8 @@ class TFPublisher:
 	def __init__(self):
 		rospy.init_node('gps_tf_publisher', anonymous=False)
 
-		self.low_pass_filter = rospy.get_param('~low_pass_filter', 0.998)
+		self.gps_low_pass_filter = rospy.get_param('~gps_low_pass_filter', 0.998)
+		self.odom_high_pass_filter = rospy.get_param('~odom_high_pass_filter', 0.9985)
 
 		self.tf_buffer = tf2_ros.Buffer()
 		self.listener = tf2_ros.TransformListener(self.tf_buffer)
@@ -99,7 +100,8 @@ class TFPublisher:
 
 	def dynamic_reconfigure_callback(self, config, level):
 
-		self.low_pass_filter = config.low_pass_filter
+		self.gps_low_pass_filter = config.gps_low_pass_filter
+		self.odom_high_pass_filter = config.odom_high_pass_filter
 
 		rospy.loginfo("Navsat Simple reconfigured.")
 
@@ -200,8 +202,8 @@ class TFPublisher:
 	def update(self):
 
 		# low pass filtering for the GNSS location
-		self.gps_x = self.gps_x * 0.998 + 0.002 * self.gps_raw_x
-		self.gps_y = self.gps_y * 0.998 + 0.002 * self.gps_raw_y
+		self.gps_x = self.gps_x * self.gps_low_pass_filter + (1.0 - self.gps_low_pass_filter) * self.gps_raw_x
+		self.gps_y = self.gps_y * self.gps_low_pass_filter + (1.0 - self.gps_low_pass_filter) * self.gps_raw_y
 
 		if self.odom_msg is None or self.gps_msg is None or self.imu_msg is None:
 			logmsg = "Waiting for: "
@@ -219,8 +221,8 @@ class TFPublisher:
 			return
 
 		# delayed response for zeroing out odom position relative to GNSS 
-		self.odom_delayed_x = self.odom_delayed_x * 0.9985 + 0.0015 * self.odom_msg.pose.pose.position.x
-		self.odom_delayed_y = self.odom_delayed_y * 0.9985 + 0.0015 * self.odom_msg.pose.pose.position.y
+		self.odom_delayed_x = self.odom_delayed_x * self.odom_high_pass_filter + (1.0 - self.odom_high_pass_filter) * self.odom_msg.pose.pose.position.x
+		self.odom_delayed_y = self.odom_delayed_y * self.odom_high_pass_filter + (1.0 - self.odom_high_pass_filter) * self.odom_msg.pose.pose.position.y
 
 		robot_rotation = quaternion_from_euler(0,0,self.heading)
 		odom_rotation = quaternion_from_euler(0,0,get_yaw(self.odom_msg.pose.pose.orientation))

@@ -1,19 +1,11 @@
 <launch>
 
-	<node name="gps_gps_to_odom_node" pkg="gps_common" type="utm_odometry_node">
-        <remap from="odom" to="odom/gps"/>
-        <remap from="fix" to="gnss/fix" />
-        <param name="rot_covariance" value="99999" />
-        <param name="append_zone" value="true" />
-    </node>
+	<arg name="low_pass_filter" default="0.998" />
 
-    <node name="gps_odom_to_gps_node" pkg="gps_common" type="utm_odometry_to_navsatfix_node">
-        <remap from="odom_fix" to="fix/origin"/>
-        <remap from="odom" to="odom/gps/origin" />
-    </node>
+	<include file="$(find navsat_simple)/launch/gps_common.launch"/>
 
-    <node name="navsat_simple_node" pkg="navsat_simple" type="localization.py" output="screen">
-		<param name="low_pass_filter" value="0.998" />
-    </node>
+	<node name="navsat_simple_node" pkg="navsat_simple" type="localization.py" output="screen">
+		<param name="low_pass_filter" value="$(arg low_pass_filter)" />
+	</node>
 
 </launch> 

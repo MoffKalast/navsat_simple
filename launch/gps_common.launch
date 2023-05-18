@@ -1,0 +1,16 @@
+<launch>
+
+	<node name="gps_gps_to_odom_node" pkg="gps_common" type="utm_odometry_node">
+		<param name="rot_covariance" value="99999" />
+		<param name="append_zone" value="true" />
+
+		<remap from="odom" to="odom/gps"/>
+		<remap from="fix" to="gnss/fix" />
+	</node>
+
+	<node name="gps_odom_to_gps_node" pkg="gps_common" type="utm_odometry_to_navsatfix_node">
+		<remap from="odom_fix" to="fix/origin"/>
+		<remap from="odom" to="odom/gps/origin"/>
+	</node>
+
+</launch> 
