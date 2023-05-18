@@ -2,25 +2,21 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A simpler alternative to robot_localization that publishes a transform from the map frame to the odom frame based on GNSS, IMU, and odometry data. 
+A simpler alternative to robot_localization that publishes a transform between the world, map and odom frame based on low pass filtered NavSatFix and high pass filtered Odometry data. 
 
-Absolute rotation is taken directly from the IMU, metric GNSS data is zeroed with a starting origin and low pass filtered.
-
-The node publishes a local map TF frame between odom and world.
+Note that this package only handles the translational offset, so the `odom` frame should already be fused with an IMU and giving absolute world rotation.
 
 ## Subscribed Topics
 
- - `/tf` (TFMessage), the transform messages
- - `/imu/data` (Imu), the IMU data, only yaw is considered
- - `/odom` (Odometry), the odometry data
+ - `/odom/wheels` (Odometry), the odometry data, presumed fused with IMU or other
  - `/odom/gps` (Odometry), the metric GPS odometry data, provided by gps_common
  - `/gnss/fix` (NavSatFix), the GNSS fix data for determining the origin
 
 ## Published Topics
 
- - `/tf` (TFMessage), the world->map and map->odom frames
-- `/odom/gps/origin` (Odometry), publishes the origin of the GPS odometry
+ - `/tf` (TFMessage), the `world->map` and `map->odom` frames
 - `/navsat_simple/origin_fix` (NavSatFix), publishes the origin of the GNSS fix
+- `/navsat_simple/raw_pose` (NavSatFix), publishes the raw pose of received GNSS fixes as they arrive, plus the rotation from /odom/wheels for debug comparison
 
 ## Services
 
