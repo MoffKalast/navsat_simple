@@ -1,0 +1,27 @@
+<package format="2">
+	<name>navsat_simple</name>
+	<version>0.1.1</version>
+	<description>A simpler gps, imu and odom fusion node.</description>
+
+	<maintainer email="vid.rijavec@gmail.com">MoffKalast</maintainer>
+	<author>MoffKalast</author>
+	<license>MIT</license>
+
+	<depend>rospy</depend>
+    <depend>dynamic_reconfigure</depend>
+	<depend>gps_common</depend>
+
+	<buildtool_depend>catkin</buildtool_depend>
+	<build_depend>std_msgs</build_depend>
+    <build_depend>geometry_msgs</build_depend>
+	<build_depend>sensor_msgs</build_depend>
+
+	<build_export_depend>std_msgs</build_export_depend>
+	<build_export_depend>geometry_msgs</build_export_depend>
+	<build_export_depend>sensor_msgs</build_export_depend>
+
+	<exec_depend>std_msgs</exec_depend>
+	<exec_depend>geometry_msgs</exec_depend>
+	<exec_depend>sensor_msgs</exec_depend>
+
+</package>
