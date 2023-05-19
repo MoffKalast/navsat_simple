@@ -167,9 +167,8 @@ class TFPublisher:
 			rawpose.pose.pose.position.y = self.gps_msg.pose.pose.position.y
 			rawpose.pose.pose.position.z = 0
 			rawpose.pose.pose.orientation = self.odom_msg.pose.pose.orientation
-			rawpose.pose.covariance[0:9] = self.fix_msg.position_covariance
-			rawpose.pose.covariance[15:18] = self.fix_msg.position_covariance[3:6]
-			rawpose.pose.covariance[30:33] = self.fix_msg.position_covariance[6:9]
+			rawpose.pose.covariance[0] = self.fix_msg.position_covariance[0]
+			rawpose.pose.covariance[7] = self.fix_msg.position_covariance[4]
 			self.pose_pub.publish(rawpose)
 
 
