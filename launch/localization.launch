@@ -1,11 +1,21 @@
 <launch>
 
-	<arg name="low_pass_filter" default="0.998" />
+	<arg name="gps_low_pass_filter" default="0.99" />
+	<arg name="odom_high_pass_filter" default="0.995" />
+
+	<arg name="heading_min_velocity" default="0.5" />
+	<arg name="heading_min_covariance" default="10.0" />
 
 	<include file="$(find navsat_simple)/launch/gps_common.launch"/>
 
 	<node name="navsat_simple_node" pkg="navsat_simple" type="localization.py" output="screen">
-		<param name="low_pass_filter" value="$(arg low_pass_filter)" />
+		<param name="gps_low_pass_filter" value="$(arg gps_low_pass_filter)" />
+		<param name="odom_high_pass_filter" value="$(arg odom_high_pass_filter)" />
+	</node>
+
+	<node name="navsat_simple_heading_node" pkg="navsat_simple" type="heading.py" output="screen">
+		<param name="min_velocity" value="$(arg heading_min_velocity)" />
+		<param name="min_covariance" value="$(arg heading_min_covariance)" />
 	</node>
 
 </launch> 

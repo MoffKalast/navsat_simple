@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 generate_dynamic_reconfigure_options(
     config/NavsatSimple.cfg
+    config/NavsatSimpleHeading.cfg
 )
 
 generate_messages(

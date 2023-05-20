@@ -69,8 +69,8 @@ class TFPublisher:
 	def __init__(self):
 		rospy.init_node('gps_tf_publisher', anonymous=False)
 
-		self.gps_low_pass_filter = rospy.get_param('~gps_low_pass_filter', 0.998)
-		self.odom_high_pass_filter = rospy.get_param('~odom_high_pass_filter', 0.9985)
+		self.gps_low_pass_filter = rospy.get_param('~gps_low_pass_filter', 0.99)
+		self.odom_high_pass_filter = rospy.get_param('~odom_high_pass_filter', 0.995)
 
 		self.tf_buffer = tf2_ros.Buffer()
 		self.listener = tf2_ros.TransformListener(self.tf_buffer)
@@ -85,7 +85,6 @@ class TFPublisher:
 		self.fix_sub = rospy.Subscriber("gnss/fix", NavSatFix, self.fix_callback)
 
 		self.fix_origin_pub = rospy.Publisher("navsat_simple/origin_fix", NavSatFix, queue_size=1, latch=True)
-		self.pose_pub = rospy.Publisher("navsat_simple/raw_pose", PoseWithCovarianceStamped, queue_size=1)
 		self.reset_srv = rospy.Service('navsat_simple/reset', Empty, self.init)
 
 		self.reconfigure_server = DynamicReconfigureServer(NavsatSimpleConfig, self.dynamic_reconfigure_callback)
@@ -120,6 +119,7 @@ class TFPublisher:
 
 		self.gps_x = 0
 		self.gps_y = 0
+
 
 	def fix_callback(self, msg):
 		if self.origin_fix is None and msg.status.status != -1:
@@ -159,17 +159,6 @@ class TFPublisher:
 
 		self.gps_raw_x = float(Decimal(msg.pose.pose.position.x) - self.origin_x)
 		self.gps_raw_y = float(Decimal(msg.pose.pose.position.y) - self.origin_y)
-
-		if not self.odom_msg is None:
-			rawpose = PoseWithCovarianceStamped()
-			rawpose.header.frame_id = "world"
-			rawpose.pose.pose.position.x = self.gps_msg.pose.pose.position.x
-			rawpose.pose.pose.position.y = self.gps_msg.pose.pose.position.y
-			rawpose.pose.pose.position.z = 0
-			rawpose.pose.pose.orientation = self.odom_msg.pose.pose.orientation
-			rawpose.pose.covariance[0] = self.fix_msg.position_covariance[0]
-			rawpose.pose.covariance[7] = self.fix_msg.position_covariance[4]
-			self.pose_pub.publish(rawpose)
 
 
 	def odom_callback(self, msg):
