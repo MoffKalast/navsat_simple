@@ -1,15 +1,10 @@
 #!/bin/python3
 
 import rospy
-import time
-import os
 import tf2_ros
 import tf
 import math
-import numpy as np
-
 import tf2_ros
-import tf2_geometry_msgs
 
 # High percision for UTM coords
 from decimal import *
@@ -18,51 +13,9 @@ getcontext().prec = 12
 from std_srvs.srv import Empty
 from sensor_msgs.msg import NavSatFix
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import TransformStamped, PoseWithCovarianceStamped
-
-from tf.transformations import quaternion_from_euler, euler_from_quaternion, quaternion_multiply, quaternion_conjugate, quaternion_inverse
-
+from geometry_msgs.msg import TransformStamped
 from dynamic_reconfigure.server import Server as DynamicReconfigureServer
 from navsat_simple.cfg import NavsatSimpleConfig
-
-def transform_quat(orientation, tf_buffer, from_frame, to_frame):
-	pose_stamped = tf2_geometry_msgs.PoseStamped()
-	pose_stamped.pose.orientation = orientation
-	pose_stamped.header.frame_id = from_frame
-	pose_stamped.header.stamp = rospy.Time.now()
-
-	try:
-		# ** It is important to wait for the listener to start listening. Hence the rospy.Duration(1)
-		output_pose_stamped = tf_buffer.transform(pose_stamped, to_frame, rospy.Duration(0.1))
-		return output_pose_stamped.pose
-
-	except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-		raise
-
-def clamp(val, vmin, vmax):
-	if val > vmax:
-		return vmax
-	if val < vmin:
-		return vmin
-	return val
-
-def get_yaw(q):	
-	return math.atan2(2.0 * (q.z * q.w + q.x * q.y) , - 1.0 + 2.0 * (q.w * q.w + q.x * q.x))
-
-def get_pitch(q):
-	return math.asin(-2.0*(q.x*q.z - q.w*q.y))
-
-def get_roll(q):
-	return math.atan2(2.0*(q.x*q.y + q.w*q.z), q.w*q.w + q.x*q.x - q.y*q.y - q.z*q.z)
-
-def get_quat(orientation):
-	return np.array([orientation.x, orientation.y, orientation.z, orientation.w])
-
-def quaternion_apply(q, v):
-	return quaternion_multiply(
-		quaternion_multiply(q, np.array([v[0], v[1], v[2], 0])), 
-		quaternion_conjugate(q)
-	)[:3]
 
 class TFPublisher:
 
@@ -108,7 +61,6 @@ class TFPublisher:
 		self.odom_msg = None
 
 		self.gps_msg = None
-		self.fix_msg = None
 
 		self.origin_fix = None
 		self.origin_x = None
@@ -126,8 +78,6 @@ class TFPublisher:
 			msg.header.frame_id = "map"
 			self.origin_fix = msg
 			self.fix_origin_pub.publish(msg)
-
-		self.fix_msg = msg
 
 	def gps_callback(self, msg):
 		if math.isnan(msg.pose.pose.position.x) or math.isnan(msg.pose.pose.position.y):
@@ -162,6 +112,10 @@ class TFPublisher:
 
 
 	def odom_callback(self, msg):
+		if math.isnan(msg.pose.pose.position.x) or math.isnan(msg.pose.pose.position.y):
+			rospy.logwarn("Odom is NaN!?")
+			return
+
 		self.odom_msg_latest = msg
 
 	def update(self):
@@ -187,6 +141,12 @@ class TFPublisher:
 		self.odom_delayed_x = self.odom_delayed_x * self.odom_high_pass_filter + (1.0 - self.odom_high_pass_filter) * self.odom_msg.pose.pose.position.x
 		self.odom_delayed_y = self.odom_delayed_y * self.odom_high_pass_filter + (1.0 - self.odom_high_pass_filter) * self.odom_msg.pose.pose.position.y
 
+		if math.isnan(self.odom_delayed_x) or math.isnan(self.odom_delayed_y) or math.isnan(self.gps_x) or math.isnan(self.gps_y):
+			# This shouldn't ever happen, but better reset than leave the robot stranded in case it does ever happen, for world waypoints it won't matter anyway
+			rospy.logwarn("Something has gone terribly wrong, location is NaN. Resetting!")
+			self.init(None)
+			return
+
 		map_odom = TransformStamped()
 		map_odom.header.stamp = rospy.Time.now()
 		map_odom.header.frame_id = "map"
@@ -207,4 +167,4 @@ try:
 		tf.update()
 		rate.sleep()
 except rospy.ROSInterruptException:
-	print("Script interrupted", file=sys.stderr)
+	print("Script interrupted")
