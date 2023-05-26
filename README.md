@@ -14,9 +14,10 @@ Note that this package only handles the translational offset, so the `odom` fram
 
 ## Published Topics
 
- - `/tf` (TFMessage), the `world->map` and `map->odom` frames
-- `/navsat_simple/origin_fix` (NavSatFix), publishes the origin of the GNSS fix
-- `/navsat_simple/raw_pose` (NavSatFix), publishes the raw pose of received GNSS fixes as they arrive, plus the rotation from /odom/wheels for debug comparison
+ - `/tf` (TFMessage): This is the `world->map` and `map->odom` frames.
+ - `/navsat_simple/origin_fix` (NavSatFix): This topic publishes the origin of the GNSS fix.
+ - `/navsat_simple/raw_pose` (NavSatFix): This topic publishes the raw pose of received GNSS fixes as they arrive, plus the rotation from /odom/wheels for debugging comparison.
+ - `/navsat_simple/heading` (PoseWithCovarianceStamped): This topic publishes the calculated heading based on GNSS data. **If the receiver isn't moving, the orientation will be a zero quaternion.**
 
 ## Services
 
@@ -24,4 +25,7 @@ Note that this package only handles the translational offset, so the `odom` fram
 
 ## Dynamic Reconfigure Config
 
- - `low_pass_filter` (double_t), GPS low pass filtering multiplier, should be between 0.0 and 1.0, where 0.0 means zero filtering and 1.0 means new data has no effect
+ - `gps_low_pass_filter` (double_t, 0-1.0): This is the low pass filter multiplier for GNSS data. Default is 0.998.
+ - `odom_high_pass_filter` (double_t, 0-1.0): This is the high pass filter multiplier for odometry. Default is 0.9985.
+ - `min_velocity` (double_t, 0.1-1.0): This parameter adjusts the minimum velocity required to calculate heading. Default is 0.5.
+ - `min_covariance` (double_t, 2.0-100.0): This parameter adjusts the minimum acceptable covariance value for heading calculation. Default is 10.0.
