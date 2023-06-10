@@ -1,6 +1,7 @@
 #!/bin/python3
 
 import rospy
+import math
 import numpy as np
 
 # High percision for UTM coords
@@ -22,12 +23,16 @@ class GpsNode:
 		self.min_velocity = rospy.get_param('~min_velocity', 0.5)
 		self.min_covariance = rospy.get_param('~min_covariance', 10.0)
 
-		self.pose_pub = rospy.Publisher('/navsat_simple/heading', PoseWithCovarianceStamped, queue_size=10)
-		self.odom_sub = rospy.Subscriber('/odom/gps', Odometry, self.callback)
+		self.pose_pub = rospy.Publisher('navsat_simple/heading', PoseWithCovarianceStamped, queue_size=10)
+		self.gps_sub = rospy.Subscriber('odom/gps', Odometry, self.gps_callback)
+		self.odom_sub = rospy.Subscriber('odom/wheels', Odometry, self.odom_callback)
 		self.recent_odom = []
 
 		self.reconfigure_server = DynamicReconfigureServer(NavsatSimpleHeadingConfig, self.dynamic_reconfigure_callback)
 		rospy.loginfo("Navsat Heading Calculator Ready")
+
+		self.reversing = False
+		self.stopped = False
 
 
 	def dynamic_reconfigure_callback(self, config, level):
@@ -38,8 +43,12 @@ class GpsNode:
 		rospy.loginfo("Navsat Heading reconfigured.")
 
 		return config
+	
+	def odom_callback(self, msg):
+		self.reversing = msg.twist.twist.linear.x < 0
+		self.stopped = math.fabs(msg.twist.twist.linear.x) < 0.15
 
-	def callback(self, msg):
+	def gps_callback(self, msg):
 
 		# Store recent odometry messages, maintaining a list of the last 10
 		self.recent_odom.append(msg)
@@ -47,9 +56,14 @@ class GpsNode:
 			self.recent_odom.pop(0)
 
 		heading = None
-		if len(self.recent_odom) > 1:
-			delta_x = self.recent_odom[-1].pose.pose.position.x - self.recent_odom[0].pose.pose.position.x
-			delta_y = self.recent_odom[-1].pose.pose.position.y - self.recent_odom[0].pose.pose.position.y
+		if len(self.recent_odom) > 1 and not self.stopped:
+
+			if self.reversing:
+				delta_x = self.recent_odom[0].pose.pose.position.x - self.recent_odom[-1].pose.pose.position.x
+				delta_y = self.recent_odom[0].pose.pose.position.y - self.recent_odom[-1].pose.pose.position.y
+			else:
+				delta_x = self.recent_odom[-1].pose.pose.position.x - self.recent_odom[0].pose.pose.position.x
+				delta_y = self.recent_odom[-1].pose.pose.position.y - self.recent_odom[0].pose.pose.position.y
 
 			if not (np.isclose(delta_x, 0.0, atol=self.min_velocity) and np.isclose(delta_y, 0.0, atol=self.min_velocity)):
 				# Only calculate heading if the robot has moved sufficiently
