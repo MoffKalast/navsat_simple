@@ -46,7 +46,7 @@ class GpsNode:
 	
 	def odom_callback(self, msg):
 		self.reversing = msg.twist.twist.linear.x < 0
-		self.stopped = math.fabs(msg.twist.twist.linear.x) < 0.15
+		self.stopped = math.fabs(msg.twist.twist.linear.x) < 0.2
 
 	def gps_callback(self, msg):
 
