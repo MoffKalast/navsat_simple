@@ -22,6 +22,7 @@ class GpsNode:
 		# Add ROS params for atol and minimum_covariance
 		self.min_velocity = rospy.get_param('~min_velocity', 0.5)
 		self.min_covariance = rospy.get_param('~min_covariance', 10.0)
+		self.gps_queue = rospy.get_param('~gps_queue', 10)
 
 		self.pose_pub = rospy.Publisher('navsat_simple/heading', PoseWithCovarianceStamped, queue_size=10)
 		self.gps_sub = rospy.Subscriber('odom/gps', Odometry, self.gps_callback)
@@ -39,6 +40,7 @@ class GpsNode:
 
 		self.min_velocity = config.min_velocity
 		self.min_covariance = config.min_covariance
+		self.gps_queue = config.gps_queue
 
 		rospy.loginfo("Navsat Heading reconfigured.")
 
@@ -46,13 +48,13 @@ class GpsNode:
 	
 	def odom_callback(self, msg):
 		self.reversing = msg.twist.twist.linear.x < 0
-		self.stopped = math.fabs(msg.twist.twist.linear.x) < 0.2
+		self.stopped = math.fabs(msg.twist.twist.linear.x) < self.min_velocity
 
 	def gps_callback(self, msg):
 
-		# Store recent odometry messages, maintaining a list of the last 10
+		# Store recent odometry messages, maintaining a list of the last few to filter out noise
 		self.recent_odom.append(msg)
-		if len(self.recent_odom) > 10:
+		if len(self.recent_odom) > self.gps_queue:
 			self.recent_odom.pop(0)
 
 		heading = None
